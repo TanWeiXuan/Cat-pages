@@ -1,78 +1,92 @@
 const canvas = document.getElementById("catCanvas");
 const ctx = canvas.getContext("2d");
 const img = new Image();
-const brushSize = document.getElementById("brushSize");
+const brushSizeInput = document.getElementById("brushSize");
+const clearBtn = document.getElementById("clearBtn");
+const saveBtn = document.getElementById("saveBtn");
+
 let drawing = false;
 
+// Load the base image
 img.src = "cat_sitting_template.png";
-
 img.onload = () => {
-  // Set canvas size to match image exactly (no scaling)
+  // Match canvas size to image pixel size (no scaling)
   canvas.width = img.width;
   canvas.height = img.height;
   ctx.drawImage(img, 0, 0);
 };
 
+// -------- Drawing logic --------
 function startDraw(e) {
   drawing = true;
-  draw(e);
+  const pos = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+  e.preventDefault();
 }
 
-function endDraw() {
+function endDraw(e) {
   drawing = false;
   ctx.beginPath();
-}
-
-function getPos(e) {
-  if (e.touches && e.touches[0]) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
-      y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
-    };
-  } else {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) * (canvas.width / rect.width),
-      y: (e.clientY - rect.top) * (canvas.height / rect.height)
-    };
-  }
+  e.preventDefault();
 }
 
 function draw(e) {
   if (!drawing) return;
   const pos = getPos(e);
 
-  ctx.lineWidth = brushSize.value;
+  ctx.lineWidth = brushSizeInput.value;
   ctx.lineCap = "round";
   ctx.strokeStyle = "black";
-
   ctx.lineTo(pos.x, pos.y);
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(pos.x, pos.y);
 
-  e.preventDefault(); // stop scrolling on touch
+  e.preventDefault(); // stop scrolling while drawing
 }
 
-// Event listeners (mouse + touch)
+// -------- Coordinate mapping --------
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  let clientX, clientY;
+
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  }
+
+  // Scale touch/mouse coordinates to match actual canvas pixels
+  const x = (clientX - rect.left) * (canvas.width / rect.width);
+  const y = (clientY - rect.top) * (canvas.height / rect.height);
+  return { x, y };
+}
+
+// -------- Event listeners --------
 canvas.addEventListener("mousedown", startDraw);
 canvas.addEventListener("mouseup", endDraw);
+canvas.addEventListener("mouseleave", endDraw);
 canvas.addEventListener("mousemove", draw);
 
-canvas.addEventListener("touchstart", startDraw);
-canvas.addEventListener("touchend", endDraw);
-canvas.addEventListener("touchmove", draw);
+canvas.addEventListener("touchstart", startDraw, { passive: false });
+canvas.addEventListener("touchend", endDraw, { passive: false });
+canvas.addEventListener("touchcancel", endDraw, { passive: false });
+canvas.addEventListener("touchmove", draw, { passive: false });
 
-document.getElementById("clearBtn").addEventListener("click", () => {
+// -------- Buttons --------
+clearBtn.addEventListener("click", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0);
 });
 
-document.getElementById("saveBtn").addEventListener("click", () => {
-  const link = document.createElement("a");
+saveBtn.addEventListener("click", () => {
   const random = Math.random().toString(36).substring(2, 7);
-  link.download = `cat_sitting_${random}.png`;
+  const filename = `cat_sitting_${random}.png`;
+  const link = document.createElement("a");
+  link.download = filename;
   link.href = canvas.toDataURL("image/png");
   link.click();
 });
