@@ -1,33 +1,24 @@
 body {
-  font-family: Arial, sans-serif;
+  font-family: sans-serif;
   text-align: center;
-  margin: 10px;
-  background: #f0f0f0;
+  background: #fafafa;
+  margin: 20px;
 }
 
-h1 {
-  font-size: 1.5em;
-}
-
-#canvasContainer {
-  overflow: auto;
+#canvas-container {
+  position: relative;
   display: inline-block;
-  border: 1px solid #333;
-  background: #fff;
-  touch-action: none; /* Important for mobile drawing */
+  border: 2px solid #ccc;
+  touch-action: none; /* prevent scrolling while drawing */
 }
 
 canvas {
   display: block;
-  touch-action: none; /* Prevent scrolling while drawing */
+  max-width: 100%;
+  height: auto;
+  background: white;
 }
 
-.buttons {
+.controls {
   margin-top: 10px;
-}
-
-button {
-  padding: 10px 20px;
-  margin: 0 10px;
-  font-size: 16px;
 }
