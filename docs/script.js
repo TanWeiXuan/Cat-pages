@@ -1,87 +1,78 @@
-const canvas = document.getElementById('drawingCanvas');
-const ctx = canvas.getContext('2d');
-const templateImage = new Image();
+const canvas = document.getElementById("catCanvas");
+const ctx = canvas.getContext("2d");
+const img = new Image();
+const brushSize = document.getElementById("brushSize");
+let drawing = false;
 
-templateImage.src = 'cat_sitting_template.png';
+img.src = "cat_sitting_template.png";
 
-templateImage.onload = () => {
-  // Set canvas size to image natural size
-  canvas.width = templateImage.naturalWidth;
-  canvas.height = templateImage.naturalHeight;
-
-  // Draw the template image once loaded
-  ctx.drawImage(templateImage, 0, 0);
+img.onload = () => {
+  // Set canvas size to match image exactly (no scaling)
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
 };
 
-// Drawing state
-let isDrawing = false;
-let lastX = 0;
-let lastY = 0;
-
-// Drawing function
-function drawLine(x, y) {
-  ctx.strokeStyle = '#ff0000';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-
-  ctx.beginPath();
-  ctx.moveTo(lastX, lastY);
-  ctx.lineTo(x, y);
-  ctx.stroke();
-
-  [lastX, lastY] = [x, y];
+function startDraw(e) {
+  drawing = true;
+  draw(e);
 }
 
-// Mouse Events
-canvas.addEventListener('mousedown', (e) => {
-  isDrawing = true;
-  [lastX, lastY] = [e.offsetX, e.offsetY];
-});
+function endDraw() {
+  drawing = false;
+  ctx.beginPath();
+}
 
-canvas.addEventListener('mousemove', (e) => {
-  if (!isDrawing) return;
-  drawLine(e.offsetX, e.offsetY);
-});
+function getPos(e) {
+  if (e.touches && e.touches[0]) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
+    };
+  } else {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  }
+}
 
-canvas.addEventListener('mouseup', () => isDrawing = false);
-canvas.addEventListener('mouseleave', () => isDrawing = false);
+function draw(e) {
+  if (!drawing) return;
+  const pos = getPos(e);
 
-// Touch Events
-canvas.addEventListener('touchstart', (e) => {
-  e.preventDefault();
-  isDrawing = true;
+  ctx.lineWidth = brushSize.value;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "black";
 
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  lastX = touch.clientX - rect.left;
-  lastY = touch.clientY - rect.top;
-});
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
 
-canvas.addEventListener('touchmove', (e) => {
-  if (!isDrawing) return;
-  e.preventDefault();
+  e.preventDefault(); // stop scrolling on touch
+}
 
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const x = touch.clientX - rect.left;
-  const y = touch.clientY - rect.top;
+// Event listeners (mouse + touch)
+canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("mouseup", endDraw);
+canvas.addEventListener("mousemove", draw);
 
-  drawLine(x, y);
-});
+canvas.addEventListener("touchstart", startDraw);
+canvas.addEventListener("touchend", endDraw);
+canvas.addEventListener("touchmove", draw);
 
-canvas.addEventListener('touchend', () => isDrawing = false);
-canvas.addEventListener('touchcancel', () => isDrawing = false);
-
-// Clear Button
-document.getElementById('clearBtn').addEventListener('click', () => {
+document.getElementById("clearBtn").addEventListener("click", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(templateImage, 0, 0);
+  ctx.drawImage(img, 0, 0);
 });
 
-// Save Button
-document.getElementById('saveBtn').addEventListener('click', () => {
-  const link = document.createElement('a');
-  link.download = 'cat_sitting_xxxxx.png';
-  link.href = canvas.toDataURL('image/png');
+document.getElementById("saveBtn").addEventListener("click", () => {
+  const link = document.createElement("a");
+  const random = Math.random().toString(36).substring(2, 7);
+  link.download = `cat_sitting_${random}.png`;
+  link.href = canvas.toDataURL("image/png");
   link.click();
 });
