@@ -4,9 +4,9 @@ const img = new Image();
 const brushSize = document.getElementById("brushSize");
 let drawing = false;
 
-// 🪣 keep track of undo history
+// keep track of undo history
 const history = [];
-const MAX_HISTORY = 20; // optional limit to prevent memory issues
+const MAX_HISTORY = 50; // optional limit to prevent memory issues
 
 img.src = "cat_sitting_template.png";
 
@@ -40,7 +40,7 @@ function startDraw(e) {
 }
 
 function endDraw() {
-  if (drawing) saveState(); // 🧠 save after each stroke
+  if (drawing) saveState(); // save after each stroke
   drawing = false;
   ctx.beginPath();
 }
