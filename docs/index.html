@@ -2,19 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Draw on Template</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draw Your Cat</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Draw on the Template</h1>
-  <div id="canvasContainer">
-    <canvas id="drawingCanvas"></canvas>
+  <h2>Draw your sitting cat 🐱</h2>
+  
+  <div id="canvas-container">
+    <canvas id="catCanvas"></canvas>
   </div>
-  <div class="buttons">
+
+  <div class="controls">
+    <label>Brush size: <input type="range" id="brushSize" min="1" max="30" value="5"></label>
     <button id="clearBtn">Clear</button>
-    <button id="saveBtn">Save Image</button>
+    <button id="saveBtn">Save as cat_sitting_xxxxx.png</button>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
