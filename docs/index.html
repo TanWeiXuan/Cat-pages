@@ -3,16 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <title>Draw on Template</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <h1>Draw on the Template</h1>
-  <canvas id="drawingCanvas" width="800" height="600"></canvas>
+  <div id="canvasContainer">
+    <canvas id="drawingCanvas"></canvas>
+  </div>
   <div class="buttons">
     <button id="clearBtn">Clear</button>
     <button id="saveBtn">Save Image</button>
   </div>
-
   <script src="script.js"></script>
 </body>
 </html>
