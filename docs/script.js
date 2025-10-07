@@ -2,6 +2,8 @@ const canvas = document.getElementById("catCanvas");
 const ctx = canvas.getContext("2d");
 const img = new Image();
 const brushSize = document.getElementById("brushSize");
+const undoBtn = document.getElementById("undoBtn");
+const redoBtn = document.getElementById("redoBtn");
 
 let drawing = false;
 
@@ -27,18 +29,39 @@ function saveState() {
   redoStack.length = 0;
 }
 
-function restoreState(stackFrom, stackTo) {
-  if (stackFrom.length > 1) {
-    // Move current state to the opposite stack
-    stackTo.push(stackFrom.pop());
-    const imgData = new Image();
-    imgData.src = stackFrom[stackFrom.length - 1];
-    imgData.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(imgData, 0, 0);
-    };
-  }
+function undo() {
+  // Need at least two states: current + a previous one to go back to
+  if (undoStack.length <= 1) return;
+  const popped = undoStack.pop();   // remove current
+  redoStack.push(popped);           // save it so redo can restore
+  const imgData = new Image();
+  imgData.src = undoStack[undoStack.length - 1]; // restore the previous state
+  imgData.onload = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imgData, 0, 0);
+  };
+  updateButtons();
 }
+
+function redo() {
+  // Redo when there's at least one state in redoStack
+  if (redoStack.length === 0) return;
+  const state = redoStack.pop(); // restore this state
+  undoStack.push(state);
+  const imgData = new Image();
+  imgData.src = state;
+  imgData.onload = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imgData, 0, 0);
+  };
+  updateButtons();
+}
+
+function updateButtons() {
+  undoBtn.disabled = undoStack.length <= 1;
+  redoBtn.disabled = redoStack.length === 0;
+}
+
 
 // --- Drawing logic ---
 function startDraw(e) {
@@ -94,13 +117,8 @@ canvas.addEventListener("touchstart", startDraw);
 canvas.addEventListener("touchend", endDraw);
 canvas.addEventListener("touchmove", draw);
 
-document.getElementById("undoBtn").addEventListener("click", () => {
-  restoreState(undoStack, redoStack);
-});
-
-document.getElementById("redoBtn").addEventListener("click", () => {
-  restoreState(redoStack, undoStack);
-});
+undoBtn.addEventListener("click", undo);
+redoBtn.addEventListener("click", redo);
 
 document.getElementById("clearBtn").addEventListener("click", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
