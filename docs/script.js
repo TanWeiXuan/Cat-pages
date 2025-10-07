@@ -19,6 +19,7 @@ img.onload = () => {
   canvas.height = img.height;
   ctx.drawImage(img, 0, 0);
   saveState(); // initial template state
+  updateButtons();
 };
 
 // --- State Management ---
@@ -27,6 +28,7 @@ function saveState() {
   undoStack.push(canvas.toDataURL());
   // Clear redo history whenever a new action happens
   redoStack.length = 0;
+  updateButtons();
 }
 
 function undo() {
