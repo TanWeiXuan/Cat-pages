@@ -2,11 +2,13 @@ const canvas = document.getElementById("catCanvas");
 const ctx = canvas.getContext("2d");
 const img = new Image();
 const brushSize = document.getElementById("brushSize");
+
 let drawing = false;
 
-// keep track of undo history
-const history = [];
-const MAX_HISTORY = 50; // optional limit to prevent memory issues
+// stacks for undo/redo
+const undoStack = [];
+const redoStack = [];
+const MAX_HISTORY = 40;
 
 img.src = "cat_sitting_template.png";
 
@@ -14,19 +16,23 @@ img.onload = () => {
   canvas.width = img.width;
   canvas.height = img.height;
   ctx.drawImage(img, 0, 0);
-  saveState(); // initial template state
+  saveState(); // save initial template
 };
 
+// --- State Management ---
 function saveState() {
-  if (history.length >= MAX_HISTORY) history.shift(); // drop oldest
-  history.push(canvas.toDataURL());
+  if (undoStack.length >= MAX_HISTORY) undoStack.shift();
+  undoStack.push(canvas.toDataURL());
+  // Clear redo history whenever a new action happens
+  redoStack.length = 0;
 }
 
-function restoreState() {
-  if (history.length > 1) {
-    history.pop(); // remove current state
+function restoreState(stackFrom, stackTo) {
+  if (stackFrom.length > 1) {
+    // Move current state to the opposite stack
+    stackTo.push(stackFrom.pop());
     const imgData = new Image();
-    imgData.src = history[history.length - 1];
+    imgData.src = stackFrom[stackFrom.length - 1];
     imgData.onload = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(imgData, 0, 0);
@@ -34,13 +40,14 @@ function restoreState() {
   }
 }
 
+// --- Drawing logic ---
 function startDraw(e) {
   drawing = true;
   draw(e);
 }
 
 function endDraw() {
-  if (drawing) saveState(); // save after each stroke
+  if (drawing) saveState(); // Save state when stroke ends
   drawing = false;
   ctx.beginPath();
 }
@@ -78,7 +85,7 @@ function draw(e) {
   e.preventDefault();
 }
 
-// Event listeners
+// --- Event listeners ---
 canvas.addEventListener("mousedown", startDraw);
 canvas.addEventListener("mouseup", endDraw);
 canvas.addEventListener("mousemove", draw);
@@ -87,12 +94,18 @@ canvas.addEventListener("touchstart", startDraw);
 canvas.addEventListener("touchend", endDraw);
 canvas.addEventListener("touchmove", draw);
 
-document.getElementById("undoBtn").addEventListener("click", restoreState);
+document.getElementById("undoBtn").addEventListener("click", () => {
+  restoreState(undoStack, redoStack);
+});
+
+document.getElementById("redoBtn").addEventListener("click", () => {
+  restoreState(redoStack, undoStack);
+});
 
 document.getElementById("clearBtn").addEventListener("click", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0);
-  saveState(); // after clearing, save the blank template
+  saveState(); // Save the cleared template
 });
 
 document.getElementById("saveBtn").addEventListener("click", () => {
