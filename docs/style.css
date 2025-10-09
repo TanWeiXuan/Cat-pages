@@ -22,3 +22,18 @@ canvas {
 .controls {
   margin-top: 10px;
 }
+
+.contribute {
+  margin-top: 20px;
+  font-size: 1rem;
+}
+
+.contribute a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.contribute a:hover {
+  text-decoration: underline;
+}
