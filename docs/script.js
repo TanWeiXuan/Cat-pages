@@ -4,8 +4,10 @@ const img = new Image();
 const brushSize = document.getElementById("brushSize");
 const undoBtn = document.getElementById("undoBtn");
 const redoBtn = document.getElementById("redoBtn");
+const modeBtn = document.getElementById("modeBtn");
 
 let drawing = false;
+let eraseMode = false;
 
 // stacks for undo/redo
 const undoStack = [];
@@ -26,8 +28,7 @@ img.onload = () => {
 function saveState() {
   if (undoStack.length >= MAX_HISTORY) undoStack.shift();
   undoStack.push(canvas.toDataURL());
-  // Clear redo history whenever a new action happens
-  redoStack.length = 0;
+  redoStack.length = 0; // Clear redo history whenever a new action happens
   updateButtons();
 }
 
@@ -68,12 +69,19 @@ function updateButtons() {
 // --- Drawing logic ---
 function startDraw(e) {
   drawing = true;
-  draw(e);
+  lastPos = getPos(e);
+  // For draw mode we want to begin a path
+  if (!eraseMode) {
+    ctx.beginPath();
+    ctx.moveTo(lastPos.x, lastPos.y);
+  }
+  draw(e); // draw first point immediately
 }
 
 function endDraw() {
-  if (drawing) saveState(); // save after each stroke
+  if (drawing) saveState();
   drawing = false;
+  lastPos = null;
   ctx.beginPath();
 }
 
@@ -97,15 +105,44 @@ function getPos(e) {
 function draw(e) {
   if (!drawing) return;
   const pos = getPos(e);
+  const size = parseInt(brushSize.value, 10);
 
-  ctx.lineWidth = brushSize.value;
-  ctx.lineCap = "round";
-  ctx.strokeStyle = "black";
+  if (eraseMode) {
+    if (!lastPos) lastPos = pos;
 
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(pos.x, pos.y);
+    const dx = pos.x - lastPos.x;
+    const dy = pos.y - lastPos.y;
+    const dist = Math.hypot(dx, dy);
+    const step = Math.max(1, Math.floor(size / 2));
+    const steps = Math.max(1, Math.ceil(dist / step));
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const ix = lastPos.x + dx * t;
+      const iy = lastPos.y + dy * t;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ix, iy, size / 2, 0, Math.PI * 2);
+      ctx.clip();
+
+      ctx.drawImage(img, 0, 0);
+      ctx.restore();
+    }
+
+    lastPos = pos;
+  } else {
+    ctx.lineWidth = size;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "black";
+
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+
+    lastPos = pos;
+  }
 
   e.preventDefault();
 }
@@ -121,6 +158,11 @@ canvas.addEventListener("touchmove", draw);
 
 undoBtn.addEventListener("click", undo);
 redoBtn.addEventListener("click", redo);
+
+modeBtn.addEventListener("click", () => {
+  eraseMode = !eraseMode;
+  modeBtn.textContent = eraseMode ? "Switch to Draw" : "Switch to Erase";
+});
 
 document.getElementById("clearBtn").addEventListener("click", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
