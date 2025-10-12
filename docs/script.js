@@ -135,3 +135,15 @@ document.getElementById("saveBtn").addEventListener("click", () => {
   link.href = canvas.toDataURL("image/png");
   link.click();
 });
+
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "y")) {
+    e.preventDefault();
+
+    if (e.key === "z") {
+      undo(); // ctrl+z or cmd+z for undo
+    } else if (e.key === "y") {
+      redo(); // ctrl+y or cmd+y for redo
+    }
+  }
+});
