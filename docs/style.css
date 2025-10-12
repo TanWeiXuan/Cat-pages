@@ -5,6 +5,15 @@ body {
   margin: 20px;
 }
 
+.controls {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
 #canvas-container {
   position: relative;
   display: inline-block;
@@ -17,10 +26,6 @@ canvas {
   max-width: 100%;
   height: auto;
   background: white;
-}
-
-.controls {
-  margin-top: 10px;
 }
 
 .contribute {
