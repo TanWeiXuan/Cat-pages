@@ -14,6 +14,16 @@ const undoStack = [];
 const redoStack = [];
 const MAX_HISTORY = 40;
 
+// Zoom and pan state
+let scale = 1;
+let translateX = 0;
+let translateY = 0;
+let isPanning = false;
+let lastPanPos = null;
+
+// Touch state for pinch zoom
+let lastTouchDistance = null;
+
 img.src = "cat_sitting_template.png";
 
 img.onload = () => {
@@ -30,6 +40,12 @@ function saveState() {
   undoStack.push(canvas.toDataURL());
   redoStack.length = 0; // Clear redo history whenever a new action happens
   updateButtons();
+}
+
+// Apply zoom and pan transformation to the canvas
+function applyTransform() {
+  canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+  canvas.style.transformOrigin = '0 0';
 }
 
 function undo() {
@@ -97,8 +113,10 @@ function getPos(e) {
     clientY = e.clientY;
   }
 
-  const x = (clientX - rect.left) * (canvas.width / rect.width);
-  const y = (clientY - rect.top) * (canvas.height / rect.height);
+  // Convert from screen coordinates to canvas coordinates
+  // accounting for the CSS transform (scale and translate)
+  const x = (clientX - rect.left) / scale * (canvas.width / (rect.width / scale));
+  const y = (clientY - rect.top) / scale * (canvas.height / (rect.height / scale));
   return { x, y };
 }
 
@@ -147,14 +165,161 @@ function draw(e) {
   e.preventDefault();
 }
 
-// --- Event Listeners ---
-canvas.addEventListener("mousedown", startDraw);
-canvas.addEventListener("mouseup", endDraw);
-canvas.addEventListener("mousemove", draw);
+// --- Zoom and Pan Functions ---
+function getTouchDistance(e) {
+  if (e.touches.length < 2) return null;
+  const dx = e.touches[0].clientX - e.touches[1].clientX;
+  const dy = e.touches[0].clientY - e.touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
 
-canvas.addEventListener("touchstart", startDraw);
-canvas.addEventListener("touchend", endDraw);
-canvas.addEventListener("touchmove", draw);
+function handleWheel(e) {
+  e.preventDefault();
+  
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  
+  // Zoom factor
+  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+  const newScale = Math.min(Math.max(0.5, scale * zoomFactor), 5);
+  
+  // Adjust translation to zoom towards mouse position
+  translateX = mouseX - (mouseX - translateX) * (newScale / scale);
+  translateY = mouseY - (mouseY - translateY) * (newScale / scale);
+  
+  scale = newScale;
+  applyTransform();
+}
+
+function handleTouchStart(e) {
+  if (e.touches.length === 2) {
+    // Two fingers - start pinch zoom
+    e.preventDefault();
+    lastTouchDistance = getTouchDistance(e);
+    isPanning = false;
+    drawing = false;
+  } else if (e.touches.length === 1) {
+    // Single finger - start drawing
+    lastTouchDistance = null;
+    startDraw(e);
+  }
+}
+
+function handleTouchMove(e) {
+  if (e.touches.length === 2) {
+    // Two fingers - pinch zoom and pan
+    e.preventDefault();
+    
+    const currentDistance = getTouchDistance(e);
+    if (lastTouchDistance && currentDistance) {
+      // Pinch zoom
+      const zoomFactor = currentDistance / lastTouchDistance;
+      const newScale = Math.min(Math.max(0.5, scale * zoomFactor), 5);
+      
+      // Get center point between two touches
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const rect = canvas.getBoundingClientRect();
+      const localX = centerX - rect.left;
+      const localY = centerY - rect.top;
+      
+      // Adjust translation to zoom towards center of pinch
+      translateX = localX - (localX - translateX) * (newScale / scale);
+      translateY = localY - (localY - translateY) * (newScale / scale);
+      
+      scale = newScale;
+      lastTouchDistance = currentDistance;
+      applyTransform();
+    }
+    
+    // Two-finger pan
+    if (!lastPanPos) {
+      lastPanPos = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+      };
+    } else {
+      const currentX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      
+      translateX += currentX - lastPanPos.x;
+      translateY += currentY - lastPanPos.y;
+      
+      lastPanPos = { x: currentX, y: currentY };
+      applyTransform();
+    }
+  } else if (e.touches.length === 1 && drawing) {
+    // Single finger - continue drawing
+    draw(e);
+  }
+}
+
+function handleTouchEnd(e) {
+  if (e.touches.length < 2) {
+    lastTouchDistance = null;
+    lastPanPos = null;
+  }
+  
+  if (e.touches.length === 0) {
+    endDraw();
+  }
+}
+
+// Desktop pan with middle mouse button or Ctrl+drag
+function handleMouseDown(e) {
+  if (e.button === 1 || (e.ctrlKey && e.button === 0)) {
+    // Middle mouse button or Ctrl+Left click for panning
+    e.preventDefault();
+    isPanning = true;
+    lastPanPos = { x: e.clientX, y: e.clientY };
+    canvas.style.cursor = 'grab';
+  } else if (!e.ctrlKey && e.button === 0) {
+    // Left click for drawing
+    startDraw(e);
+  }
+}
+
+function handleMouseMove(e) {
+  if (isPanning) {
+    e.preventDefault();
+    translateX += e.clientX - lastPanPos.x;
+    translateY += e.clientY - lastPanPos.y;
+    lastPanPos = { x: e.clientX, y: e.clientY };
+    applyTransform();
+    canvas.style.cursor = 'grabbing';
+  } else {
+    draw(e);
+  }
+}
+
+function handleMouseUp(e) {
+  if (isPanning) {
+    isPanning = false;
+    lastPanPos = null;
+    canvas.style.cursor = 'crosshair';
+  } else {
+    endDraw();
+  }
+}
+
+// --- Event Listeners ---
+canvas.addEventListener("mousedown", handleMouseDown);
+canvas.addEventListener("mouseup", handleMouseUp);
+canvas.addEventListener("mousemove", handleMouseMove);
+
+// Prevent context menu on middle mouse button
+canvas.addEventListener("contextmenu", (e) => {
+  if (e.button === 1) e.preventDefault();
+});
+
+// Wheel event for zoom
+canvas.addEventListener("wheel", handleWheel, { passive: false });
+
+// Touch events
+canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
+canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
 
 undoBtn.addEventListener("click", undo);
 redoBtn.addEventListener("click", redo);
