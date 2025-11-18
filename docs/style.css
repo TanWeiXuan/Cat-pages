@@ -48,6 +48,10 @@ body {
   display: inline-block;
   border: 2px solid #ccc;
   touch-action: none; /* prevent scrolling while drawing */
+  overflow: hidden; /* hide content outside container during zoom/pan */
+  width: 90vw;
+  max-width: 800px;
+  height: 70vh;
 }
 
 canvas {
@@ -55,6 +59,8 @@ canvas {
   max-width: 100%;
   height: auto;
   background: white;
+  cursor: crosshair;
+  transform-origin: 0 0;
 }
 
 .contribute {
@@ -70,4 +76,14 @@ canvas {
 
 .contribute a:hover {
   text-decoration: underline;
+}
+
+.zoom-info {
+  margin: 10px 0;
+  font-size: 0.9rem;
+  color: #555;
+  background: #f9f9f9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: inline-block;
 }
