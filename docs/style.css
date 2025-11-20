@@ -49,9 +49,7 @@ body {
   border: 2px solid #ccc;
   touch-action: none; /* prevent scrolling while drawing */
   overflow: hidden; /* hide content outside container during zoom/pan */
-  width: 90vw;
   max-width: 800px;
-  height: 70vh;
 }
 
 canvas {
