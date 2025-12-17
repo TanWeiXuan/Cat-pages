@@ -179,18 +179,16 @@ function handleWheel(e) {
   const rect = canvas.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
   const mouseY = e.clientY - rect.top;
+  const canvasX = mouseX / scale;
+  const canvasY = mouseY / scale;
   
   // Zoom factor
   const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
   const newScale = Math.min(Math.max(0.5, scale * zoomFactor), 5);
-  
-  // Calculate the point in canvas space before zoom
-  const canvasX = (mouseX - translateX) / scale;
-  const canvasY = (mouseY - translateY) / scale;
-  
+
   // Adjust translation to keep the point under cursor fixed
-  translateX = mouseX - canvasX * newScale;
-  translateY = mouseY - canvasY * newScale;
+  translateX += canvasX * (scale - newScale);
+  translateY += canvasY * (scale - newScale);
   
   scale = newScale;
   applyTransform();
@@ -227,14 +225,12 @@ function handleTouchMove(e) {
       const rect = canvas.getBoundingClientRect();
       const localX = centerX - rect.left;
       const localY = centerY - rect.top;
-      
-      // Calculate the point in canvas space before zoom
-      const canvasX = (localX - translateX) / scale;
-      const canvasY = (localY - translateY) / scale;
+      const canvasX = localX / scale;
+      const canvasY = localY / scale;
       
       // Adjust translation to keep the point under pinch center fixed
-      translateX = localX - canvasX * newScale;
-      translateY = localY - canvasY * newScale;
+      translateX += canvasX * (scale - newScale);
+      translateY += canvasY * (scale - newScale);
       
       scale = newScale;
       lastTouchDistance = currentDistance;
