@@ -30,6 +30,14 @@ img.src = "cat_sitting_template.png";
 let templateCanvas = null;
 let templateCtx = null;
 
+// Color detection thresholds for light blue background
+const LIGHT_BLUE_R_MIN = 150;
+const LIGHT_BLUE_R_MAX = 200;
+const LIGHT_BLUE_G_MIN = 200;
+const LIGHT_BLUE_G_MAX = 240;
+const LIGHT_BLUE_B_MIN = 215;
+const LIGHT_BLUE_B_MAX = 245;
+
 img.onload = () => {
   canvas.width = img.width;
   canvas.height = img.height;
@@ -68,9 +76,9 @@ function isLightBlueBackground(x, y) {
   // Light blue background color is approximately RGB(173, 216, 230)
   // We use a tolerance to account for anti-aliasing and JPEG artifacts
   const isLightBlue = (
-    r >= 150 && r <= 200 &&
-    g >= 200 && g <= 240 &&
-    b >= 215 && b <= 245
+    r >= LIGHT_BLUE_R_MIN && r <= LIGHT_BLUE_R_MAX &&
+    g >= LIGHT_BLUE_G_MIN && g <= LIGHT_BLUE_G_MAX &&
+    b >= LIGHT_BLUE_B_MIN && b <= LIGHT_BLUE_B_MAX
   );
   
   return isLightBlue;
@@ -170,7 +178,6 @@ function draw(e) {
   if (isLightBlueBackground(pos.x, pos.y)) {
     // Don't draw on the background, but update lastPos to avoid jumps
     lastPos = pos;
-    e.preventDefault();
     return;
   }
 
