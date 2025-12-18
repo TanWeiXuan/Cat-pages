@@ -8,6 +8,7 @@ const modeBtn = document.getElementById("modeBtn");
 
 let drawing = false;
 let eraseMode = false;
+let lastPos = null;
 
 // stacks for undo/redo
 const undoStack = [];
@@ -176,8 +177,13 @@ function draw(e) {
 
   // Check if trying to draw on light blue background
   if (isLightBlueBackground(pos.x, pos.y)) {
-    // Don't draw on the background, but update lastPos to avoid jumps
-    lastPos = pos;
+    // Don't draw on the background; reset the path so returning doesn't create a bridge
+    if (eraseMode) {
+      lastPos = pos;
+    } else {
+      lastPos = null;
+      ctx.beginPath();
+    }
     return;
   }
 
@@ -209,6 +215,14 @@ function draw(e) {
 
     lastPos = pos;
   } else {
+    if (!lastPos) {
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      lastPos = pos;
+      e.preventDefault();
+      return;
+    }
+
     ctx.lineWidth = size;
     ctx.lineCap = "round";
     ctx.strokeStyle = "black";
