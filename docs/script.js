@@ -26,10 +26,30 @@ let lastTouchDistance = null;
 
 img.src = "cat_sitting_template.png";
 
+// Store the original template for color checking
+let templateCanvas = null;
+let templateCtx = null;
+
+// Color detection thresholds for light blue background
+const LIGHT_BLUE_R_MIN = 150;
+const LIGHT_BLUE_R_MAX = 200;
+const LIGHT_BLUE_G_MIN = 200;
+const LIGHT_BLUE_G_MAX = 240;
+const LIGHT_BLUE_B_MIN = 215;
+const LIGHT_BLUE_B_MAX = 245;
+
 img.onload = () => {
   canvas.width = img.width;
   canvas.height = img.height;
   ctx.drawImage(img, 0, 0);
+  
+  // Create a hidden canvas to store the template for color checking
+  templateCanvas = document.createElement('canvas');
+  templateCanvas.width = img.width;
+  templateCanvas.height = img.height;
+  templateCtx = templateCanvas.getContext('2d');
+  templateCtx.drawImage(img, 0, 0);
+  
   saveState(); // initial template state
   updateButtons();
 };
@@ -40,6 +60,28 @@ function saveState() {
   undoStack.push(canvas.toDataURL());
   redoStack.length = 0; // Clear redo history whenever a new action happens
   updateButtons();
+}
+
+// Check if a pixel is the light blue background
+function isLightBlueBackground(x, y) {
+  if (!templateCtx || x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) {
+    return true; // Treat out-of-bounds as background
+  }
+  
+  const pixel = templateCtx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+  const r = pixel[0];
+  const g = pixel[1];
+  const b = pixel[2];
+  
+  // Light blue background color is approximately RGB(173, 216, 230)
+  // We use a tolerance to account for anti-aliasing and JPEG artifacts
+  const isLightBlue = (
+    r >= LIGHT_BLUE_R_MIN && r <= LIGHT_BLUE_R_MAX &&
+    g >= LIGHT_BLUE_G_MIN && g <= LIGHT_BLUE_G_MAX &&
+    b >= LIGHT_BLUE_B_MIN && b <= LIGHT_BLUE_B_MAX
+  );
+  
+  return isLightBlue;
 }
 
 // Apply zoom and pan transformation to the canvas
@@ -84,8 +126,15 @@ function updateButtons() {
 
 // --- Drawing logic ---
 function startDraw(e) {
+  const pos = getPos(e);
+  
+  // Don't start drawing if on light blue background
+  if (isLightBlueBackground(pos.x, pos.y)) {
+    return;
+  }
+  
   drawing = true;
-  lastPos = getPos(e);
+  lastPos = pos;
   // For draw mode we want to begin a path
   if (!eraseMode) {
     ctx.beginPath();
@@ -125,6 +174,13 @@ function draw(e) {
   const pos = getPos(e);
   const size = parseInt(brushSize.value, 10);
 
+  // Check if trying to draw on light blue background
+  if (isLightBlueBackground(pos.x, pos.y)) {
+    // Don't draw on the background, but update lastPos to avoid jumps
+    lastPos = pos;
+    return;
+  }
+
   if (eraseMode) {
     if (!lastPos) lastPos = pos;
 
@@ -138,6 +194,9 @@ function draw(e) {
       const t = i / steps;
       const ix = lastPos.x + dx * t;
       const iy = lastPos.y + dy * t;
+
+      // Skip erasing on background areas
+      if (isLightBlueBackground(ix, iy)) continue;
 
       ctx.save();
       ctx.beginPath();
